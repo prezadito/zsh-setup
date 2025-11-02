@@ -100,6 +100,3 @@ cdl() {
 mkcd() {
     mkdir -p "$1" && cd "$1"
 }
-
-# Load custom configurations if they exist
-[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
