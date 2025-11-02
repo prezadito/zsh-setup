@@ -1,0 +1,231 @@
+#!/bin/zsh
+# Pre Oh-My-Zsh Configuration - Optimized
+# This file contains development tools and environment setup
+
+# =============================================================================
+# PATH MANAGEMENT
+# =============================================================================
+
+# Initialize PATH with system defaults
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# Add Homebrew paths (Apple Silicon and Intel compatibility)
+if [[ -d "/opt/homebrew" ]]; then
+    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+elif [[ -d "/usr/local/Homebrew" ]]; then
+    export PATH="/usr/local/bin:$PATH"
+fi
+
+# =============================================================================
+# DEVELOPMENT TOOLS CONFIGURATION
+# =============================================================================
+
+# Java Development Kit Configuration
+if [[ -d "/Library/Java/JavaVirtualMachines/jdk-21.jdk" ]]; then
+    export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home"
+elif [[ -d "/Library/Java/JavaVirtualMachines" ]]; then
+    # Find the latest JDK automatically
+    JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || /usr/libexec/java_home 2>/dev/null)
+    [[ -n "$JAVA_HOME" ]] && export JAVA_HOME
+fi
+
+# Maven Configuration
+MAVEN_HOME="$HOME/apache-maven-3.9.6"
+if [[ -d "$MAVEN_HOME" ]]; then
+    export M2_HOME="$MAVEN_HOME"
+    export M2="$M2_HOME/bin"
+    export PATH="$M2:$PATH"
+else
+    # Check for Homebrew Maven
+    [[ -d "/opt/homebrew/opt/maven" ]] && export PATH="/opt/homebrew/opt/maven/bin:$PATH"
+fi
+
+# =============================================================================
+# NODE.JS ENVIRONMENT
+# =============================================================================
+
+# Node Version Manager (NVM) - Load if available
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # Lazy load NVM for faster shell startup
+    nvm() {
+        unfunction nvm
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm "$@"
+    }
+    
+    # Add current node version to PATH if it exists
+    [[ -s "$NVM_DIR/alias/default" ]] && export PATH="$NVM_DIR/versions/node/$(cat $NVM_DIR/alias/default)/bin:$PATH"
+fi
+
+# Specific Node.js version (fallback if NVM not managing)
+[[ -d "/opt/homebrew/opt/node@20/bin" ]] && export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
+
+# =============================================================================
+# PYTHON ENVIRONMENT
+# =============================================================================
+
+# Python Environment Manager (pyenv)
+if command -v pyenv >/dev/null 2>&1; then
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init --path)"
+    eval "$(pyenv init -)"
+    
+    # Lazy load pyenv virtualenv if available
+    if pyenv commands | grep -q virtualenv-init; then
+        eval "$(pyenv virtualenv-init -)"
+    fi
+else
+    # Fallback to system Python if pyenv not available
+    echo "Note: pyenv not found. Consider installing for better Python version management."
+fi
+
+# =============================================================================
+# EDITOR CONFIGURATION
+# =============================================================================
+
+# Set editor preference (check availability)
+if command -v code >/dev/null 2>&1; then
+    export EDITOR="code -w"
+elif [[ -x "/usr/local/bin/mate" ]]; then
+    export EDITOR="/usr/local/bin/mate -w"
+elif command -v nvim >/dev/null 2>&1; then
+    export EDITOR="nvim"
+elif command -v vim >/dev/null 2>&1; then
+    export EDITOR="vim"
+else
+    export EDITOR="nano"
+fi
+
+# =============================================================================
+# DEVELOPMENT TOOLS & IDEs
+# =============================================================================
+
+# IntelliJ IDEA CLI tools
+IDEA_PATH="/Applications/IntelliJ IDEA.app/Contents/MacOS"
+[[ -d "$IDEA_PATH" ]] && export PATH="$IDEA_PATH:$PATH"
+
+# Windsurf (Codeium)
+WINDSURF_PATH="$HOME/.codeium/windsurf/bin"
+[[ -d "$WINDSURF_PATH" ]] && export PATH="$WINDSURF_PATH:$PATH"
+
+# LM Studio CLI
+LMS_PATH="$HOME/.lmstudio/bin"
+[[ -d "$LMS_PATH" ]] && export PATH="$LMS_PATH:$PATH"
+
+# =============================================================================
+# SHELL ENHANCEMENTS
+# =============================================================================
+
+# Git prompt integration (if available)
+if [[ -f "$HOME/.git-prompt.sh" ]]; then
+    source "$HOME/.git-prompt.sh"
+    setopt PROMPT_SUBST
+    PS1='[%n@%m %c$(__git_ps1 " (%s)")]$ '
+else
+    # Fallback prompt
+    PS1='[%n@%m %c]$ '
+fi
+
+# Enhanced completion system
+autoload -Uz compinit
+# Only regenerate compdump once per day for faster startup
+if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C
+fi
+
+# =============================================================================
+# TERMINAL INTEGRATION
+# =============================================================================
+
+# Kiro terminal integration
+[[ "$TERM_PROGRAM" == "kiro" && -n "$(command -v kiro)" ]] && \
+    . "$(kiro --locate-shell-integration-path zsh)" 2>/dev/null
+
+# =============================================================================
+# ALIASES & SHORTCUTS
+# =============================================================================
+
+# GitHub Copilot CLI aliases
+if command -v gh >/dev/null 2>&1; then
+    alias ghcp="gh copilot"
+    alias ghcs="gh copilot suggest"
+    alias ghce="gh copilot explain"
+fi
+
+# Python development aliases
+alias py="python"
+alias py3="python3"
+alias pip="pip3"
+
+# Node.js development aliases
+alias ni="npm install"
+alias ns="npm start"
+alias nr="npm run"
+alias nt="npm test"
+
+# Java development aliases
+alias mvn-clean="mvn clean compile"
+alias mvn-test="mvn clean test"
+alias mvn-package="mvn clean package"
+
+# Development shortcuts
+alias ports="lsof -i -P -n | grep LISTEN"
+alias myip="curl -s http://checkip.amazonaws.com"
+alias serve="python -m http.server 8000"
+
+# Spyder IDE uninstaller (keep if you use Spyder)
+SPYDER_UNINSTALL="$HOME/Library/spyder-6/uninstall-spyder.sh"
+[[ -x "$SPYDER_UNINSTALL" ]] && alias uninstall-spyder="$SPYDER_UNINSTALL"
+
+# =============================================================================
+# SDK MANAGEMENT (Must be at the end)
+# =============================================================================
+
+# SDKMAN! - Software Development Kit Manager
+export SDKMAN_DIR="$HOME/.sdkman"
+if [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
+    source "$SDKMAN_DIR/bin/sdkman-init.sh"
+fi
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATIONS
+# =============================================================================
+
+# Skip slow Git operations in large repositories
+export GIT_OPTIONAL_LOCKS=0
+
+# Increase history size
+export HISTSIZE=10000
+export SAVEHIST=10000
+
+# Better history handling
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt SHARE_HISTORY
+
+# =============================================================================
+# CLEANUP & VALIDATION
+# =============================================================================
+
+# Remove duplicate PATH entries
+typeset -U path PATH
+
+# Validate critical tools
+missing_tools=()
+for tool in git node npm python; do
+    command -v "$tool" >/dev/null 2>&1 || missing_tools+=("$tool")
+done
+
+if [[ ${#missing_tools[@]} -gt 0 ]]; then
+    echo "Warning: Missing development tools: ${missing_tools[*]}"
+    echo "Consider installing them via Homebrew or package manager."
+fi
